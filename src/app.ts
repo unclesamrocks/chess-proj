@@ -15,7 +15,7 @@ const makeId = (): string => {
 const sorting = (a: Player, b: Player) => {
 	return a.score - b.score || a.id > b.id ? 1 : -1
 }
-const sortingScore = (a: Player, b: Player) => a.score - b.score
+const sortingScore = (a: Player, b: Player) => b.score - a.score
 const sortingId = (a: Player, b: Player) => (a.id > b.id ? 1 : -1)
 
 /*==============================================
@@ -29,7 +29,7 @@ class Player {
 class Tourney {
 	constructor(
 		public players: Player[],
-		protected pairs: string[],
+		public pairs: string[],
 		protected score = {
 			win: 3,
 			loose: 0,
@@ -37,28 +37,34 @@ class Tourney {
 		}
 	) {}
 
-	start() {
-		this.round()
-		let winner = this.isWinner()
+	start(cb: (p: Player) => void) {
+		let winner: Player | null = null
+		// game loop
+		while (!winner) {
+			this.round()
+			winner = this.isWinner()
+		}
+		cb(winner)
 	}
 
 	protected round() {
 		// 1. make uniq pairs
 		const pairs = this.makePairs()
 		// 2. play each pair
-		console.log(pairs)
-		// const round = this.playRound(pairs)
+		const round = this.playRound(pairs)
 		// 3. store pairs
-		// this.storePairs(round)
+		console.log('[ROUND]')
+		console.log(round)
+		this.storePairs(round)
 		// 4. end of round
 	}
 
 	protected makePairs(): HashPairs {
+		console.log(' =================== [makePairs] =================== ')
 		let currPlayers = [...this.players].sort(sortingScore)
-		console.log(currPlayers)
+		// console.log(currPlayers)
 		// to make sure pairs always sum up of in same order need to sort array
 		const pairs: HashPairs = {}
-		console.log(' =================== [makePairs] =================== ')
 		while (currPlayers.length) {
 			// on each iteration check for pair.
 			let i = 0
@@ -66,10 +72,10 @@ class Tourney {
 			const curr = currPlayers[i]
 			let next = currPlayers[index]
 			while (this.checkPair(curr, next)) {
-				// continue to update next unless find uniq pair
+				// continue to update next unless find uniq pairs
 				next = currPlayers[index++]
 			}
-			// if found pair || just 1 player in case no pair..§
+			// if found pair || just 1 player in case no pair.
 			pairs[this.hash(curr, next)] = next ? [curr, next] : [curr]
 			// remove pair from array
 			currPlayers = currPlayers.filter(el => el !== curr && el !== next)
@@ -81,8 +87,8 @@ class Tourney {
 		const r: HashPairs = {}
 		Object.keys(p).forEach(key => {
 			const win = Math.round(Math.random())
-			p[key][0].score = win ? 3 : 0
-			if (p[key][1]) p[key][1].score = !win ? 3 : 0
+			p[key][0].score += win ? 3 : 0
+			if (p[key][1]) p[key][1].score += !win ? 3 : 0
 			r[key] = p[key]
 		})
 		return r
@@ -102,7 +108,7 @@ class Tourney {
 	}
 
 	/**
-	 * @returns `false` if pair IS uniq
+	 * @returns `false` if pair IS uniq.
 	 */
 	protected checkPair(player1: Player, player2: Player): boolean {
 		if (!player1) return false
@@ -126,7 +132,16 @@ class Tourney {
 const players = []
 const names = ['Alex', 'Nikita', 'Olga', 'Andrey', 'Vasily', 'Vladimir', 'Ivan', 'Nikolai']
 for (let i = 0; i < names.length; i++) players.push(new Player(makeId(), names[i]))
-
+//.....
+console.log(' ============================== NEW GAME ============================== ')
+console.log(' ============================== NEW GAME ============================== ')
+console.log(' ============================== NEW GAME ============================== ')
+console.log(' ============================== NEW GAME ============================== ')
+console.log(' ============================== NEW GAME ============================== ')
 const tourney = new Tourney(players, [])
 console.log(tourney)
-console.log(tourney.start())
+tourney.start(player => {
+	console.log(tourney.players)
+	console.log(tourney.pairs)
+	console.log('[WINNER]', player)
+})
