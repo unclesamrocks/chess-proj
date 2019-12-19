@@ -17,7 +17,7 @@ const sorting = (a: Player, b: Player) => {
 }
 const sortingScore = (a: Player, b: Player) => b.score - a.score
 const sortingId = (a: Player, b: Player) => (a.id > b.id ? 1 : -1)
-const randomSort = (a: Player, b: Player) => (b.score - a.score || Math.random() > 0.5 ? 1 : -1)
+const randomSort = (a: Player, b: Player) => (a.score - b.score || Math.random() > 0.5 ? 1 : -1)
 
 /*==============================================
 				Classes
@@ -35,7 +35,8 @@ class Tourney {
 			win: 3,
 			loose: 0,
 			draw: 1
-		}
+		},
+		protected roundNum: number = 1
 	) {}
 
 	start(cb: (p: Player) => void) {
@@ -55,7 +56,7 @@ class Tourney {
 		while (!pairs) {
 			try {
 				pairs = this.makePairs(true)
-				if (count++ > 30) throw new Error('Stack overflow') // error boundary
+				if (count++ > 10) throw new Error('Stack overflow') // error boundary
 				console.log(count)
 				// ........
 			} catch (error) {
@@ -69,10 +70,12 @@ class Tourney {
 				process.exit(404)
 			}
 		}
+		console.log('[PAIRS]', this.roundNum)
+		console.log(pairs)
 		// 2. play each pair
 		const round = this.playRound(pairs)
 		// 3. store pairs
-		console.log('[ROUND]')
+		console.log('[ROUND]', this.roundNum++)
 		console.log(round)
 		this.storePairs(round)
 		// 4. end of round
@@ -80,7 +83,7 @@ class Tourney {
 
 	protected makePairs(random?: boolean): HashPairs | null {
 		console.log(' =================== [makePairs] =================== ')
-		let currPlayers = [...this.players].sort(random ? randomSort : sortingScore)
+		let currPlayers = [...this.players].sort(sortingScore)
 		// console.log(currPlayers)
 		// to make sure pairs always sum up of in same order need to sort array
 		const pairs: HashPairs = {}
@@ -112,7 +115,7 @@ class Tourney {
 			// if found pair || just 1 player in case no pair.
 			pairs[this.hash(curr, next)] = next ? [curr, next] : [curr]
 			// remove pair from array
-			currPlayers = currPlayers.filter(el => el !== curr && el !== next)
+			currPlayers = currPlayers.filter(el => el !== curr && el !== next).sort(sortingScore)
 		}
 		return pairs
 	}
@@ -120,10 +123,17 @@ class Tourney {
 	protected playRound(p: HashPairs): HashPairs {
 		const r: HashPairs = {}
 		Object.keys(p).forEach(key => {
-			const win = Math.round(Math.random())
-			p[key][0].score += win ? 3 : 0
-			if (p[key][1]) p[key][1].score += !win ? 3 : 0
-			r[key] = p[key]
+			if (p[key].length === 1) {
+				// case single competitor
+				p[key][0].score += this.score.win
+				r[key] = p[key]
+			} else {
+				// case 2 competitors
+				const win = Math.round(Math.random())
+				p[key][0].score += win ? this.score.win : this.score.loose
+				p[key][1].score += !win ? this.score.win : this.score.loose
+				r[key] = p[key]
+			}
 		})
 		return r
 	}
@@ -164,12 +174,12 @@ class Tourney {
 				INIT
 ===============================================*/
 
-const names = ['Alex', 'Nikita', 'Olga', 'Andrey', 'Vasily', 'Vladimir', 'Ivan', 'Nikolai']
+const names = ['Alex', 'Nikita', 'Olga', 'Andrey', 'Vasily' /**'Vladimir', 'Ivan', 'Nikolai', 'Extra'*/]
 
 /*==============================================
 				TEST
 ===============================================*/
-
+// ...
 let count = 0
 for (let i = 0; i <= 100; i++) {
 	console.log(' ============================== NEW GAME ============================== ')
