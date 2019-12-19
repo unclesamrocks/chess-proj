@@ -1,3 +1,11 @@
+/*==============================================
+				Types
+===============================================*/
+type HashPairs = { [hash: string]: Player[] }
+/*==============================================
+				Funcs
+===============================================*/
+
 const makeId = (): string => {
 	return Math.random()
 		.toString(32)
@@ -7,6 +15,8 @@ const makeId = (): string => {
 const sorting = (a: Player, b: Player) => {
 	return a.score - b.score || a.id > b.id ? 1 : -1
 }
+const sortingScore = (a: Player, b: Player) => a.score - b.score
+const sortingId = (a: Player, b: Player) => (a.id > b.id ? 1 : -1)
 
 /*==============================================
 				Classes
@@ -29,42 +39,83 @@ class Tourney {
 
 	start() {
 		this.round()
+		let winner = this.isWinner()
 	}
 
-	round() {
+	protected round() {
 		// 1. make uniq pairs
-		this.makePairs()
-		// 2. store pairs
-		// 3. play each pair
-		// 4. store results
+		const pairs = this.makePairs()
+		// 2. play each pair
+		console.log(pairs)
+		// const round = this.playRound(pairs)
+		// 3. store pairs
+		// this.storePairs(round)
+		// 4. end of round
 	}
 
-	makePairs() {
-		const currPlayers = [...this.players].sort(sorting)
+	protected makePairs(): HashPairs {
+		let currPlayers = [...this.players].sort(sortingScore)
 		console.log(currPlayers)
 		// to make sure pairs always sum up of in same order need to sort array
-		const pairs: { hash?: string; pair?: Player[] } = {}
-		for (let i = 0; i < currPlayers.length; i++) {
-			// on each iteration check for pair
-			const curr = currPlayers[i]
+		const pairs: HashPairs = {}
+		console.log(' =================== [makePairs] =================== ')
+		while (currPlayers.length) {
+			// on each iteration check for pair.
+			let i = 0
 			let index = i + 1
+			const curr = currPlayers[i]
 			let next = currPlayers[index]
 			while (this.checkPair(curr, next)) {
 				// continue to update next unless find uniq pair
-				next = currPlayers[++index]
+				next = currPlayers[index++]
 			}
+			// if found pair || just 1 player in case no pair..§
+			pairs[this.hash(curr, next)] = next ? [curr, next] : [curr]
+			// remove pair from array
+			currPlayers = currPlayers.filter(el => el !== curr && el !== next)
 		}
+		return pairs
 	}
 
-	isWinner() {}
+	protected playRound(p: HashPairs): HashPairs {
+		const r: HashPairs = {}
+		Object.keys(p).forEach(key => {
+			const win = Math.round(Math.random())
+			p[key][0].score = win ? 3 : 0
+			if (p[key][1]) p[key][1].score = !win ? 3 : 0
+			r[key] = p[key]
+		})
+		return r
+	}
 
-	storePair(player1: Player, player2: Player) {}
+	protected isWinner(): Player | null {
+		const scores = [...this.players].sort(sortingScore)
+		const topPlayer = scores.shift()
+		if (!topPlayer) throw new Error('[isWinner][error] topPlayer seems undefined :(')
+		const isWin = scores.every(player => player.score < topPlayer.score)
+		if (isWin) return topPlayer
+		else return null
+	}
+
+	protected storePairs(p: HashPairs) {
+		this.pairs.push(...Object.keys(p))
+	}
 
 	/**
 	 * @returns `false` if pair IS uniq
 	 */
-	checkPair(player1: Player, player2: Player): boolean {
-		return this.pairs.some(val => val === player1.id + player2.id)
+	protected checkPair(player1: Player, player2: Player): boolean {
+		if (!player1) return false
+		const hash = player2 ? this.hash(player1, player2) : this.hash(player1)
+		return this.pairs.some(val => val === hash)
+	}
+
+	protected hash(player1: Player, player2?: Player): string {
+		if (!player2) return player1.id // case single player
+		return [player1, player2]
+			.sort(sortingId)
+			.map(v => v.id)
+			.join('')
 	}
 }
 
@@ -78,4 +129,4 @@ for (let i = 0; i < names.length; i++) players.push(new Player(makeId(), names[i
 
 const tourney = new Tourney(players, [])
 console.log(tourney)
-tourney.start()
+console.log(tourney.start())
