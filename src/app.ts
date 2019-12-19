@@ -17,6 +17,7 @@ const sorting = (a: Player, b: Player) => {
 }
 const sortingScore = (a: Player, b: Player) => b.score - a.score
 const sortingId = (a: Player, b: Player) => (a.id > b.id ? 1 : -1)
+const randomSort = (a: Player, b: Player) => (b.score - a.score || Math.random() > 0.5 ? 1 : -1)
 
 /*==============================================
 				Classes
@@ -48,8 +49,26 @@ class Tourney {
 	}
 
 	protected round() {
+		let count = 0 // error boundary
 		// 1. make uniq pairs
-		const pairs = this.makePairs()
+		let pairs = this.makePairs()
+		while (!pairs) {
+			try {
+				pairs = this.makePairs(true)
+				if (count++ > 30) throw new Error('Stack overflow') // error boundary
+				console.log(count)
+				// ........
+			} catch (error) {
+				console.error('[crashed][round]')
+				console.log('[crash][round]')
+				console.log(this)
+				console.log('[currentPlayers]')
+				console.log(this.players)
+				console.log('[pairs]')
+				console.log(this.pairs)
+				process.exit(404)
+			}
+		}
 		// 2. play each pair
 		const round = this.playRound(pairs)
 		// 3. store pairs
@@ -59,9 +78,9 @@ class Tourney {
 		// 4. end of round
 	}
 
-	protected makePairs(): HashPairs {
+	protected makePairs(random?: boolean): HashPairs | null {
 		console.log(' =================== [makePairs] =================== ')
-		let currPlayers = [...this.players].sort(sortingScore)
+		let currPlayers = [...this.players].sort(random ? randomSort : sortingScore)
 		// console.log(currPlayers)
 		// to make sure pairs always sum up of in same order need to sort array
 		const pairs: HashPairs = {}
@@ -71,8 +90,23 @@ class Tourney {
 			let index = i + 1
 			const curr = currPlayers[i]
 			let next = currPlayers[index]
+			let count = 0 // error boundary
 			while (this.checkPair(curr, next)) {
+				// error boundary
+				if (count++ > 20) {
+					console.error('[crash][makePairs]')
+					console.log(this)
+					console.log('[currentPlayers]')
+					console.log(currPlayers)
+					console.log('[pairs]')
+					console.log(pairs)
+					console.log('[curr]', curr)
+					console.log('[next]', next)
+					process.exit(404)
+				}
+				// if (currPlayers.length === 2 && this.checkPair(curr, next)) return null
 				// continue to update next unless find uniq pairs
+				if (!next && !currPlayers[index + 1]) return null
 				next = currPlayers[index++]
 			}
 			// if found pair || just 1 player in case no pair.
@@ -110,9 +144,10 @@ class Tourney {
 	/**
 	 * @returns `false` if pair IS uniq.
 	 */
-	protected checkPair(player1: Player, player2: Player): boolean {
-		if (!player1) return false
-		const hash = player2 ? this.hash(player1, player2) : this.hash(player1)
+	protected checkPair(player1: Player, player2?: Player): boolean {
+		if (!player1) throw new Error('[checkPair] Incorrect params passed')
+		const hash = this.hash(player1, player2)
+		console.log('[checkPair][hash]', hash)
 		return this.pairs.some(val => val === hash)
 	}
 
@@ -129,19 +164,26 @@ class Tourney {
 				INIT
 ===============================================*/
 
-const players = []
 const names = ['Alex', 'Nikita', 'Olga', 'Andrey', 'Vasily', 'Vladimir', 'Ivan', 'Nikolai']
-for (let i = 0; i < names.length; i++) players.push(new Player(makeId(), names[i]))
-//.....
-console.log(' ============================== NEW GAME ============================== ')
-console.log(' ============================== NEW GAME ============================== ')
-console.log(' ============================== NEW GAME ============================== ')
-console.log(' ============================== NEW GAME ============================== ')
-console.log(' ============================== NEW GAME ============================== ')
-const tourney = new Tourney(players, [])
-console.log(tourney)
-tourney.start(player => {
-	console.log(tourney.players)
-	console.log(tourney.pairs)
-	console.log('[WINNER]', player)
-})
+
+/*==============================================
+				TEST
+===============================================*/
+
+let count = 0
+for (let i = 0; i <= 100; i++) {
+	console.log(' ============================== NEW GAME ============================== ')
+	console.log(' ============================== NEW GAME ============================== ')
+	console.log(' ============================== NEW GAME ============================== ')
+	console.log(' ============================== NEW GAME ============================== ')
+	const players = []
+	for (let i = 0; i < names.length; i++) players.push(new Player(makeId(), names[i]))
+	const tourney = new Tourney(players, [])
+	console.log(tourney)
+	tourney.start(player => {
+		console.log(tourney.players)
+		console.log(tourney.pairs)
+		console.log('[WINNER]', player)
+		console.log(count++)
+	})
+}
